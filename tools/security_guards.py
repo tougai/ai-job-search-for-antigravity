@@ -29,6 +29,7 @@ errors: list[str] = []
 REQUIRED_IGNORE_RULES = [
     "salary_data.json",
     "**/job_scraper/seen_jobs.json",
+    "**/job_scraper/seen_jobs.json.bak-*",
     "**/job_scraper/notion_sync.json",
     "**/job_scraper/job_matrix_export.csv",
     "**/job_scraper/job_matrix_export.json",
