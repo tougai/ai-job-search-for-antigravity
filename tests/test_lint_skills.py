@@ -45,18 +45,18 @@ class LinterRepoFixture(unittest.TestCase):
             encoding="utf-8",
         )
 
-        command = self.root / ".claude" / "commands" / "setup.md"
+        command = self.root / ".agents" / "commands" / "setup.md"
         command.parent.mkdir(parents=True)
         command.write_text("# /setup - Test setup command\n", encoding="utf-8")
 
-        skill = self.root / ".claude" / "skills" / "example" / "SKILL.md"
+        skill = self.root / ".agents" / "skills" / "example" / "SKILL.md"
         skill.parent.mkdir(parents=True)
         skill.write_text(
             "---\nname: example\ndescription: Example skill\n---\n",
             encoding="utf-8",
         )
 
-        self.settings = self.root / ".claude" / "settings.json"
+        self.settings = self.root / ".agents" / "settings.json"
         self.write_settings({"permissions": {"allow": []}})
 
     def write_settings(self, data):
@@ -76,7 +76,7 @@ class SettingsShapeTests(LinterRepoFixture):
         result = run_linter(self.root)
 
         self.assertEqual(result.returncode, 1)
-        self.assertIn(".claude/settings.json", result.stdout)
+        self.assertIn(".agents/settings.json", result.stdout)
         self.assertNotIn("Traceback", result.stderr)
 
     def test_non_object_root_fails_cleanly(self):
@@ -118,7 +118,7 @@ class SkillAndCommandCheckTests(LinterRepoFixture):
     finding F23, 2026-08-19)."""
 
     def write_skill(self, frontmatter: str):
-        skill = self.root / ".claude" / "skills" / "example" / "SKILL.md"
+        skill = self.root / ".agents" / "skills" / "example" / "SKILL.md"
         skill.write_text(frontmatter, encoding="utf-8")
 
     def test_allowed_tools_referencing_a_missing_file_fails(self):
@@ -126,7 +126,7 @@ class SkillAndCommandCheckTests(LinterRepoFixture):
             "---\n"
             "name: example\n"
             "description: Example skill\n"
-            "allowed-tools: Bash(bun run .claude/skills/example/DOES_NOT_EXIST.ts *)\n"
+            "allowed-tools: Bash(bun run .agents/skills/example/DOES_NOT_EXIST.ts *)\n"
             "---\n"
         )
 
@@ -137,13 +137,13 @@ class SkillAndCommandCheckTests(LinterRepoFixture):
         self.assertIn("DOES_NOT_EXIST.ts", result.stdout)
 
     def test_allowed_tools_referencing_an_existing_file_passes(self):
-        target = self.root / ".claude" / "skills" / "example" / "cli.ts"
+        target = self.root / ".agents" / "skills" / "example" / "cli.ts"
         target.write_text("// present\n", encoding="utf-8")
         self.write_skill(
             "---\n"
             "name: example\n"
             "description: Example skill\n"
-            "allowed-tools: Bash(bun run .claude/skills/example/cli.ts *)\n"
+            "allowed-tools: Bash(bun run .agents/skills/example/cli.ts *)\n"
             "---\n"
         )
 
@@ -160,7 +160,7 @@ class SkillAndCommandCheckTests(LinterRepoFixture):
         self.assertIn("missing required key 'description'", result.stdout)
 
     def test_command_without_slash_title_fails(self):
-        command = self.root / ".claude" / "commands" / "setup.md"
+        command = self.root / ".agents" / "commands" / "setup.md"
         command.write_text("# setup - missing the slash\n", encoding="utf-8")
 
         result = run_linter(self.root)

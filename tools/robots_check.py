@@ -4,13 +4,13 @@
 The retry exists to get past bot-filtering firewalls on sites whose robots.txt
 permits access. It is never used to override a site that has said no.
 
-WebFetch identifies itself as Claude-User and honors robots.txt, so a 403 has
+WebFetch identifies itself as Antigravity-User and honors robots.txt, so a 403 has
 two very different causes: a WAF default on a site whose published policy
 allows access, or a site that has actually declined. This tells them apart.
 
 Rules implemented (RFC 9309), deliberately on the cautious side:
   * longest-match wins; on equal specificity Disallow wins
-  * a Disallow for either "*" or "Claude-User" blocks the retry
+  * a Disallow for either "*" or "Antigravity-User" blocks the retry
   * blank lines inside a record do not end it (Python's robotparser drops
     rules in that case, which fails open - see tests)
   * one leading UTF-8 byte-order mark is skipped (left in, it hides a first
@@ -188,7 +188,7 @@ def gate(url):
         path += '?' + unquote(parts.query)
     robots = f'{parts.scheme}://{parts.netloc}/robots.txt'
     body, last = None, 'no attempt'
-    for ua in ('Claude-User', BROWSER):
+    for ua in ('Antigravity-User', BROWSER):
         try:
             text, code = _fetch(robots, ua)
         except Exception as e:
@@ -206,7 +206,7 @@ def gate(url):
         last = 'HTTP %d' % code
     if body is None:
         return 1, 'UNCONFIRMED (%s) - do not retry, go to step 3' % last
-    for a in ('Claude-User', '*'):
+    for a in ('Antigravity-User', '*'):
         if not allowed(body, a, path):
             return 1, f'DISALLOWED for {a} - do not retry, go to step 3'
     return 0, 'ALLOWED - robots.txt permits this path'

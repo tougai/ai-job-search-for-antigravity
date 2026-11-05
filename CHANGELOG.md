@@ -19,7 +19,7 @@ per-file diff commands.
   job ran on Ubuntu, so a Windows-only failure reached master with all checks green: #480's test
   (an atomic rename that Windows file locking refuses) and #486's (a tool printing non-ASCII JSON
   to a piped cp1252 stdout) both passed every Linux leg and failed on Windows 11. The new job runs
-  the full suite on `windows-latest` with Python 3.14 under Git Bash, the shell Claude Code uses
+  the full suite on `windows-latest` with Python 3.14 under Git Bash, the shell Antigravity uses
   on Windows, and leaves stdout at the Windows default encoding so the same failures show up in
   CI. The five Linux legs keep their names, so required checks are unchanged.
 
@@ -41,8 +41,8 @@ per-file diff commands.
   3,550, `golang OR rust` 6,805. The CLI already passes `-q` through unchanged.
 
 - **`/scrape` drops already-seen hits before fetching details and keeps its history out of the conversation**
-  (#710, `tools/scrape_state.py`, `tests/test_scrape_state.py`, `.claude/skills/job-scraper/SKILL.md`,
-  `.claude/settings.json`, `tools/security_guards.py`) - previously `/scrape` read the whole
+  (#710, `tools/scrape_state.py`, `tests/test_scrape_state.py`, `.agents/skills/job-scraper/SKILL.md`,
+  `.agents/settings.json`, `tools/security_guards.py`) - previously `/scrape` read the whole
   `job_scraper/seen_jobs.json` and the application tracker into the conversation on every run, fetched
   details for every promising hit before checking whether it had been seen, and rewrote the file at the end;
   a history of a few hundred jobs is already about 100 KB. A new helper does the deduplication outside the
@@ -50,7 +50,7 @@ per-file diff commands.
   company and title), already in the tracker, or repeated within the run, before any detail fetch; `store`
   rechecks, keys each new entry with `job_key.make_key` and adds it atomically without touching existing
   entries; `history` gives the portal health check its prior-entry count. The helper gets path-scoped allow
-  entries in `.claude/settings.json` and the guard allowlist, like `rank_state.py`.
+  entries in `.agents/settings.json` and the guard allowlist, like `rank_state.py`.
 
 ### Fixed
 
@@ -214,13 +214,13 @@ per-file diff commands.
   dropped or reordered one still fails; upstream keeps the exact comparison.
 
 - **`verify_layout.py` uses a `pdftotext` that supports `-bbox` wherever it sits on PATH** (#668,
-  fixes #655, `tools/verify_layout.py`, `tests/test_verify_layout.py`, `.claude/commands/apply.md`) -
-  under Git Bash, which Claude Code uses on Windows, Git's xpdf `pdftotext` 4.00 (no `-bbox`) sits
+  fixes #655, `tools/verify_layout.py`, `tests/test_verify_layout.py`, `.agents/commands/apply.md`) -
+  under Git Bash, which Antigravity uses on Windows, Git's xpdf `pdftotext` 4.00 (no `-bbox`) sits
   ahead of MiKTeX's Poppler, so the layout check skipped on the standard Windows setup even with
   Poppler installed. It now probes each distinct `pdftotext` on PATH with `-h`, runs the first that
   lists `-bbox` by its full path, and keeps the `skipped:` exit 2 for when none does.
 
-- **`/notion-sync` can set a page's Status to `expired`** (#666, fixes #597) (`.claude/commands/notion-sync.md` Steps 2-5,
+- **`/notion-sync` can set a page's Status to `expired`** (#666, fixes #597) (`.agents/commands/notion-sync.md` Steps 2-5,
   `tests/test_notion_sync_command.py`) - Step 2 built the sync set from `ranked` entries and tracker rows only, so a job
   synced while ranked and later retired by `/rank`'s sweep never re-entered the set and its page stayed `ranked`, although
   Step 4 says to set Status to `expired`. `expired` entries now join the sync set as update-only candidates: a matching page
@@ -228,8 +228,8 @@ per-file diff commands.
   under `--rebuild`, and a first run with only such entries stops before creating the database. An expired posting with a
   tracker row still syncs as an ordinary row.
 
-- **`/rank` Step 2 no longer forbids the web search its own escalation requires** (#638) (`.claude/commands/rank.md`) - the
-  escalation bullet ends with a search for the employer's own careers site (step 4 of `09-web-research.md` is `WebSearch`),
+- **`/rank` Step 2 no longer forbids the web search its own escalation requires** (#638) (`.agents/commands/rank.md`) - the
+  escalation bullet ends with a search for the employer's own careers site (step 4 of `09-web-research.md` is `search_web`),
   and the next bullet said "no web searches", in the same prompt every scoring agent receives. The scope bullet now allows a
   web search only for that last escalation step, finding the employer's own copy of the posting; company research and salary
   lookups stay out of `/rank`.
@@ -252,24 +252,24 @@ per-file diff commands.
   Similarly, `robots_check.py` now guarantees UTF-8 standard streams across platforms.
 
 - **Every workflow spec invokes Python as `python3`, with a single Windows note at first use**
-  (#678, fixes #669, `.claude/commands/apply.md`, `.claude/commands/rank.md`,
-  `.claude/skills/job-scraper/SKILL.md`,
-  `.claude/skills/job-application-assistant/04-job-evaluation.md`,
-  `.claude/skills/job-application-assistant/05-cv-templates.md`,
-  `.claude/skills/job-application-assistant/09-web-research.md`, `CLAUDE.md`,
+  (#678, fixes #669, `.agents/commands/apply.md`, `.agents/commands/rank.md`,
+  `.agents/skills/job-scraper/SKILL.md`,
+  `.agents/skills/job-application-assistant/04-job-evaluation.md`,
+  `.agents/skills/job-application-assistant/05-cv-templates.md`,
+  `.agents/skills/job-application-assistant/09-web-research.md`, `GEMINI.md`,
   `tests/test_python_command_specs.py`) - the specs split between spellings:
   `/apply` and the skill files it reads (`04-job-evaluation`, `05-cv-templates`)
-  plus `CLAUDE.md` ran bare `python salary_lookup.py` / `python tools/verify_*.py`
+  plus `GEMINI.md` ran bare `python salary_lookup.py` / `python tools/verify_*.py`
   while `/rank`, `/scrape` and `09-web-research` ran `python3 ...`, so one
   `/apply` run saw both spellings for the same commands. Every command now reads
   `python3`, and each spec that runs a tool carries one Windows note at its
   first use: run the tools as `python` there, because a python.org install
   ships no `python3` and that name reaches the Microsoft Store alias, which
   either exits 49 with no output or starts a separate Store Python without the
-  packages `pip` installed (such as pypdf). `.claude/settings.json` already
+  packages `pip` installed (such as pypdf). `.agents/settings.json` already
   allows both spellings, so no settings or guard change.
-  `tests/test_python_command_specs.py` globs `.claude/commands/*.md`,
-  `.claude/skills/**/*.md` and `.claude/agents/*.md` and fails if any spec
+  `tests/test_python_command_specs.py` globs `.agents/commands/*.md`,
+  `.agents/skills/**/*.md` and `.agents/subagents/*.md` and fails if any spec
   runs a bare `python`, or a spec that runs a tool carries no note, a second
   note, or one after its first command.
 
@@ -313,7 +313,7 @@ per-file diff commands.
   (#704, `tools/posting_guard.py`, `tests/test_posting_guard.py`) - the excerpt was a fixed
   `line[:200]`, so when the trigger sat later in a long paragraph the user saw a ⚠ with 200
   characters of ordinary company prose and nothing suspicious in them. `apply.md` relies on
-  the quote to let the user dismiss a flag in a second, and WebFetch paragraphs and portal
+  the quote to let the user dismiss a flag in a second, and fetch_page.py paragraphs and portal
   plain output routinely run past 200 characters. The excerpt is now a window of the same
   length around the first match, with `…` marking a cut at either end; lines up to 200
   characters are quoted whole as before. One new case fails on master; the short-line case
@@ -346,7 +346,7 @@ per-file diff commands.
 
 - **`fetch_page.py` checks `robots.txt` before every redirect it follows** (#680, `tools/fetch_page.py`,
   `tests/test_fetch_page.py`, `SECURITY.md`, `tests/test_posting_gate_wiring.py`,
-  `.claude/skills/job-application-assistant/09-web-research.md` `framework_version: 1.1.6 -> 1.1.7`) -
+  `.agents/skills/job-application-assistant/09-web-research.md` `framework_version: 1.1.6 -> 1.1.7`) -
   the gate ran once, on the URL it was given, and `curl -L` or urllib's redirect handler then followed
   up to five redirects unchecked, so an allowed posting URL that redirected to a path the site's
   `robots.txt` disallows, or to another host whose policy says no, was fetched and saved anyway. The
@@ -364,7 +364,7 @@ per-file diff commands.
   `tests/search-normalization.test.ts`) - external job ads in search results emitted the
   external employer ATS link directly in `url` (#557), which tripped `/scrape`'s Step 4.75 degraded
   scan ("URLs that do not point at the portal") and caused `/apply` and `/rank`'s host-based routing
-  (#562) to send the posting to `WebFetch` on an ATS application form rather than `jobnet detail`.
+  (#562) to send the posting to `fetch_page.py` on an ATS application form rather than `jobnet detail`.
   `createSearchOutput` now keeps `url` canonical as `https://jobnet.dk/find-job/<id>` across all
   ads (preserving identity, deduplication, and portal routing to `detail`), while emitting the
   external employer ATS destination in `applyUrl` (matching the `applyUrl` field name on `detail`
@@ -372,9 +372,9 @@ per-file diff commands.
   canonical identity link, which 404s in a browser, and the employer page is `applyUrl` (search) or
   the `Apply:` line of `detail`.
 
-- **`/reset documents` deletes the documents again under zsh** (#699, `.claude/commands/reset.md`
+- **`/reset documents` deletes the documents again under zsh** (#699, `.agents/commands/reset.md`
   Step 3, `tests/test_reset_documents.py`) - the block merged in #580 used the bash-only builtin
-  `shopt -s dotglob nullglob`. Claude Code's Bash tool runs the user's shell, which is zsh on
+  `shopt -s dotglob nullglob`. Antigravity's Bash tool runs the user's shell, which is zsh on
   macOS, where the line fails with `command not found: shopt`, and under `set -e` the subshell
   exits 127 before its deletion loop: the reset reported success and deleted nothing. The
   replay tests ran the block under `bash` only, so they stayed green. The block is now POSIX
@@ -535,7 +535,7 @@ per-file diff commands.
 
 
 - **The ask list now covers the files the allow list runs, and the guard reads load-time commands**
-  (`.claude/settings.json`, `tools/security_guards.py` checks 4 and 5, `SECURITY.md`,
+  (`.agents/settings.json`, `tools/security_guards.py` checks 4 and 5, `SECURITY.md`,
   `tests/test_security_guards.py`) - `allow` pre-approves `tools/*.py`, every portal CLI and
   `salary_lookup.py` by path, and the skills keep `Edit`/`Write` granted, so in the turn that
   reads a posting an agent could rewrite one of those files and run it under its existing allow
@@ -548,7 +548,7 @@ per-file diff commands.
   `permissionMode` that removes prompts and agent `hooks` or `mcpServers`.
 
 - **Pre-approved PDF tooling can no longer write to arbitrary paths** (`tools/verify_pdf.py`,
-  `.claude/settings.json`, `tools/security_guards.py`, `tests/test_verify_pdf.py`) -
+  `.agents/settings.json`, `tools/security_guards.py`, `tests/test_verify_pdf.py`) -
   `settings.json` pre-approves `verify_pdf.py` with any arguments, and `--dump-text` wrote the
   extracted text layer to whatever path it was given, creating missing parent directories and
   overwriting an existing file: a prompt-free write anywhere on disk, with content taken from a
@@ -560,11 +560,11 @@ per-file diff commands.
   works; it now asks first.
 
 - **The trust-boundary rule now rides along into every spec that reads third-party content**
-  (`.claude/commands/{add-portal,expand,gmail-sync,interview,notion-sync,outcome,setup}.md`,
-  `.claude/skills/{job-application-assistant,job-scraper,upskill}/SKILL.md`,
+  (`.agents/commands/{add-portal,expand,gmail-sync,interview,notion-sync,outcome,setup}.md`,
+  `.agents/skills/{job-application-assistant,job-scraper,upskill}/SKILL.md`,
   `tests/test_untrusted_input_rules.py`) - `/apply` and `/rank` state that postings are
   untrusted third-party data, never instructions, but ten other specs that fetch or read such
-  content did not. `/scrape` ingested portal CLI output and WebSearch results with no rule.
+  content did not. `/scrape` ingested portal CLI output and search_web results with no rule.
   `/gmail-sync` classified inbound email - the one input anyone can send - with none.
   `/setup` Path A read the verbatim archived posting and email-quoting `outcome.md` notes and
   wrote calibration into `04-job-evaluation.md`, which every later `/apply` and `/rank` loads,
@@ -631,23 +631,23 @@ per-file diff commands.
 
 ### Changed
 
-- **`/apply` and `/rank` route matching portal URLs to installed CLI `detail` before `WebFetch`**
-  (#535, `.claude/commands/apply.md` Step 0, `.claude/commands/rank.md` Step 2,
-  `.claude/skills/job-application-assistant/09-web-research.md`) - job portal URLs pasted
+- **`/apply` and `/rank` route matching portal URLs to installed CLI `detail` before `fetch_page.py`**
+  (#535, `.agents/commands/apply.md` Step 0, `.agents/commands/rank.md` Step 2,
+  `.agents/skills/job-application-assistant/09-web-research.md`) - job portal URLs pasted
   into `/apply` or evaluated in batch by `/rank` now invoke the matching installed portal CLI's
   `detail <url> --format plain` command first, avoiding bot-detection 403s and login walls on
-  aggregator boards before falling back to `WebFetch`. Escalation order in `09-web-research.md`
+  aggregator boards before falling back to `fetch_page.py`. Escalation order in `09-web-research.md`
   places portal CLI detail as the first rung (`framework_version: 1.1.1 -> 1.1.2`).
 
 - **`/apply` Step 5e names explicit cleanup shell commands for build intermediates**
-  (#531, `.claude/commands/apply.md`) - the step previously described deleting `.aux`/`.log`/`.out`
+  (#531, `.agents/commands/apply.md`) - the step previously described deleting `.aux`/`.log`/`.out`
   in prose, leaving artifact cleanup vulnerable to being skipped by agents. It now specifies explicit
   `rm` commands for stock/custom LaTeX toolchains and redirected `build/` directories, timed after
   log-inspecting steps 5b-5d complete, and explicitly preserves template assets (`cover.cls`,
   `OpenFonts/`, custom template files).
 
 - **`/rank` retries a posting it could not fetch instead of expiring it** (#534,
-  `tools/rank_state.py`, `.claude/commands/rank.md`) - a data-model change: scoring agents
+  `tools/rank_state.py`, `.agents/commands/rank.md`) - a data-model change: scoring agents
   now return a third status, `unreachable` (with a short `fetch_error`), when retrieval still
   fails after the `09-web-research.md` escalation order (401/403, login wall, 404, timeout,
   5xx, empty page), and keep `expired` for positive evidence the posting is closed (closed
@@ -704,8 +704,8 @@ per-file diff commands.
   the raw timestamp now expect the date and fail on master, plus three cases on the helper.
 
 - **`/rank`, `/notion-sync` and `/upskill` name `job_scraper/seen_jobs.json` by its full path** (#617)
-  (follow-up to #608, `.claude/commands/rank.md`, `.claude/commands/notion-sync.md`,
-  `.claude/skills/upskill/SKILL.md`, `tests/test_scrape_seen_jobs_path.py`) - #608 qualified the
+  (follow-up to #608, `.agents/commands/rank.md`, `.agents/commands/notion-sync.md`,
+  `.agents/skills/upskill/SKILL.md`, `tests/test_scrape_seen_jobs_path.py`) - #608 qualified the
   path in `/scrape`, where the file is written; the three readers still said the bare
   `seen_jobs.json`, which an agent can resolve to the repo root, outside the ignore rule. The
   guard test now covers all four specs, and `test_notion_sync_command.py` pins the qualified
@@ -724,12 +724,12 @@ per-file diff commands.
   repository's own demonstration data. "firma" is now a compound token, like the other glued Danish
   headers; every other workbook converts byte-identically.
 
-- **`/scrape`'s entry schema lists the `unreachable` status** (#615, `.claude/skills/job-scraper/SKILL.md`) -
+- **`/scrape`'s entry schema lists the `unreachable` status** (#615, `.agents/skills/job-scraper/SKILL.md`) -
   follow-up to #564: the `status` enum in the `seen_jobs.json` schema block still read
   `new/skipped/ranked/expired` while the dedup rule two sections down already named `unreachable`.
 
 - **`/scrape` names `job_scraper/seen_jobs.json` by its full path in every step** (#608,
-  `.claude/skills/job-scraper/SKILL.md`, `tests/test_scrape_seen_jobs_path.py`) - seven references
+  `.agents/skills/job-scraper/SKILL.md`, `tests/test_scrape_seen_jobs_path.py`) - seven references
   after Step 0, including the Step 4 write instruction, used the bare filename, and an assistant
   following them wrote the state file at the repository root, where the
   `**/job_scraper/seen_jobs.json` ignore rule does not reach it; one fork committed its scrape
@@ -748,7 +748,7 @@ per-file diff commands.
   The report tables remain newest first; the tool still executes no Git mutations.
 
 - **`/upskill` and `/notion-sync` now name the field ranked entries actually carry when joining
-  them to tracker rows** (`.claude/skills/upskill/SKILL.md` Step 3, `.claude/commands/notion-sync.md`
+  them to tracker rows** (`.agents/skills/upskill/SKILL.md` Step 3, `.agents/commands/notion-sync.md`
   Step 2, `tests/test_upskill_skill.py`, `tests/test_notion_sync_command.py`) - both said to match
   "on company + role" with "casefold + strip on both fields", but a `seen_jobs.json` entry has
   `title` and no `role` key (the job-scraper schema), so read literally the lookup never matched:
@@ -760,7 +760,7 @@ per-file diff commands.
   fail on master.
 
 - **`/reset profile` keeps the `### Languages` table header under Identity**
-  (`.claude/commands/reset.md` Step 3, `tests/test_reset_command.py`) - `04-job-evaluation.md`'s
+  (`.agents/commands/reset.md` Step 3, `tests/test_reset_command.py`) - `04-job-evaluation.md`'s
   Language Gate and `job-scraper/search-queries.md`'s query-language generation both read "your
   Languages table" from `01-candidate-profile.md`, but the skeleton `/reset` wrote left
   `## Identity` empty, so after a reset `/rank` and `/scrape` looked for a table the file no
@@ -769,7 +769,7 @@ per-file diff commands.
   not reintroduced. Follow-up noted on #532.
 
 - **`05-cv-templates.md` snippets write the `\cventry` date argument with an ASCII hyphen, as the same
-  file's own rule requires** (`.claude/skills/job-application-assistant/05-cv-templates.md`,
+  file's own rule requires** (`.agents/skills/job-application-assistant/05-cv-templates.md`,
   `framework_version: 1.4.6 -> 1.4.7`) - the in-progress-qualification snippet under "In-progress
   qualifications must say so explicitly" wrote `\cventry{2025--2026}`, the `\needspace` snippet
   under the orphaned-entry fix wrote `\cventry{YEAR--YEAR}`, and the in-progress section offered a date field
@@ -850,7 +850,7 @@ per-file diff commands.
 - **Upstream checks distinguish new files from fork deletions** (#585) - a path absent from the base is reported as newly added upstream instead of incorrectly treated as a deletion in the fork.
 
 - **`/add-portal` includes the `.agents` prefix in generated `allowed-tools`** (#545,
-  `.claude/commands/add-portal.md`, `tests/test_add_portal_command.py`) - the specification template
+  `.agents/commands/add-portal.md`, `tests/test_add_portal_command.py`) - the specification template
   for the new portal's `SKILL.md` frontmatter wrote `allowed-tools: Bash(bun run skills/<name>/cli/src/cli.ts *)`
   without `.agents/`, the one path in the file without it. A skill's `allowed-tools` grants the
   listed command when that skill is invoked, so a generated portal invoked on its own granted a
@@ -873,7 +873,7 @@ per-file diff commands.
 - **Salary workbook conversion prefers exact identity headers** (#571) - exact company column names take precedence over incidental substring matches in other headers.
 
 - **CV template guidance aligns geometry scale with master template** (#553,
-  `.claude/skills/job-application-assistant/05-cv-templates.md`, `tests/test_latex_guidance.py`) -
+  `.agents/skills/job-application-assistant/05-cv-templates.md`, `tests/test_latex_guidance.py`) -
   the preamble snippet in `05-cv-templates.md` specified `\usepackage[scale=0.77]{geometry}`,
   whereas the master reference template `cv/main_example.tex` configures `scale=0.80`. The guide
   has been aligned to `scale=0.80`, preventing tighter margins and unwanted page overflow during
@@ -881,9 +881,9 @@ per-file diff commands.
 
 - **Salary workbook conversion skips chart-only tabs** (#590) - chartsheets no longer cause iteration failures while worksheet data continues to be converted.
 
-- **`.claude/settings.local.json` is ignored in `.gitignore` and pinned in security guards** (#551,
-  `.gitignore`, `tools/security_guards.py`) - Claude Code stores machine-local settings and
-  ad-hoc tool approvals in `.claude/settings.local.json`. The file is now excluded from version
+- **`.agents/settings.local.json` is ignored in `.gitignore` and pinned in security guards** (#551,
+  `.gitignore`, `tools/security_guards.py`) - Antigravity stores machine-local settings and
+  ad-hoc tool approvals in `.agents/settings.local.json`. The file is now excluded from version
   control in `.gitignore` and pinned in `REQUIRED_IGNORE_RULES` to prevent fork users from
   accidentally committing local session configurations.
 
@@ -900,7 +900,7 @@ per-file diff commands.
 - **Salary workbook conversion skips whitespace-only companies** (#576) - blank-looking company cells no longer produce empty company entries.
 
 - **`/reset profile` keeps the `framework_version` frontmatter on the two files it rewrites**
-  (`.claude/commands/reset.md` Step 3, `tests/test_reset_command.py`) - the full-file skeletons
+  (`.agents/commands/reset.md` Step 3, `tests/test_reset_command.py`) - the full-file skeletons
   for `01-candidate-profile.md` and `02-behavioral-profile.md` started at the `#` title, while
   the shipped files open with a `---` block carrying `framework_version`. Applied as written,
   one `/reset profile` left both files failing `tools/check_framework_version.py` ("missing
@@ -915,7 +915,7 @@ per-file diff commands.
 
 
 - **`/reset profile` now targets the headings the shipped skill files actually have**
-  (`.claude/commands/reset.md` Step 3, `tests/test_reset_command.py`) - two of its Step 3
+  (`.agents/commands/reset.md` Step 3, `tests/test_reset_command.py`) - two of its Step 3
   targets had drifted. The `05-cv-templates.md` step anchored on a section beginning
   `**Profile statement templates`, a line the guide has never contained (its heading is
   `**Create 2-3 profile statement templates for your main role types:**`), so the wipe found
@@ -957,7 +957,7 @@ per-file diff commands.
 - **Danish portal CLIs reject missing option values** (#573) - value-taking flags followed by another option now fail before search dispatch instead of treating the next flag as the value.
 
 - **`/expand` and `/setup` now append behavioral findings to sections `02-behavioral-profile.md`
-  actually has** (`.claude/commands/expand.md` Step 5, `.claude/commands/setup.md` Step A7,
+  actually has** (`.agents/commands/expand.md` Step 5, `.agents/commands/setup.md` Step A7,
   `tests/test_expand_command.py`, `tests/test_setup_command.py`) - both told the model to add
   to "Strongest Behavioral Traits" and "How I Work Best" / "How [Candidate] Works Best" while
   also saying "match existing structure", but the shipped file's headings are "Strongest
@@ -1043,7 +1043,7 @@ per-file diff commands.
   decoding deterministically regardless of host locale. Pinned by `RunGitEncodingTests` in
   `tests/test_check_framework_version.py`, which fails against the original un-pinned call.
 
-- **`/rank` still sweeps deadlines when there is nothing new to score** (`.claude/commands/rank.md`
+- **`/rank` still sweeps deadlines when there is nothing new to score** (`.agents/commands/rank.md`
   Step 1, `tests/test_rank_command.py`) - when `rank_state.py candidates` reported no eligible
   jobs, Step 1 said "Nothing new to rank" and stopped before Step 3's rule 6 expiry sweep ever
   ran. Once a backlog has been ranked, that is the path every later `/rank` takes, so
@@ -1119,12 +1119,12 @@ per-file diff commands.
 ### Security
 
 - **Skill frontmatter no longer grants bare `Bash` or a portal-CLI glob**
-  (#642, `.claude/skills/job-application-assistant/SKILL.md` `framework_version: 1.3.4 -> 1.3.5`,
-  `.claude/skills/job-scraper/SKILL.md`, `.claude/commands/add-portal.md` Step 5) - a skill's
+  (#642, `.agents/skills/job-application-assistant/SKILL.md` `framework_version: 1.3.4 -> 1.3.5`,
+  `.agents/skills/job-scraper/SKILL.md`, `.agents/commands/add-portal.md` Step 5) - a skill's
   `allowed-tools` pre-approves the listed tools for the turn that invokes it, with no prompt and
   regardless of workspace trust. The job-application skill granted `Bash`, `Edit`, `Write`
   outright, and the scraper granted `bun run` on any `.agents/skills/*/cli/src/cli.ts`, while
-  `.claude/settings.json` carefully enumerated six portals - a public review by an AI agent
+  `.agents/settings.json` carefully enumerated six portals - a public review by an AI agent
   (shared on Reddit) read exactly that and concluded local use was unsafe as configured. The
   tools scripts, salary lookup, `pdftotext` and the portal CLIs were already allowlisted per
   command in `settings.json`, so no new standing grant is needed. What the bare grant did cover,
@@ -1134,44 +1134,44 @@ per-file diff commands.
   pre-approved. The per-portal grants stay in `settings.json`; `/add-portal` now says a new
   portal is pre-approved only once its own entry is there and in `ALLOWED_PERMISSIONS`.
 
-- **`.claude/settings.json` ships `ask` and `deny` rules, and the guard requires them**
+- **`.agents/settings.json` ships `ask` and `deny` rules, and the guard requires them**
   (#642, `tools/security_guards.py` `REQUIRED_ASK_RULES` / `REQUIRED_DENY_RULES`,
   `tests/test_security_guards.py`) - deny rules block in every permission mode including
   `bypassPermissions` and override any allow rule or skill grant; ask rules force a prompt even
   when a skill's `allowed-tools` would pre-approve the call. Denied: `curl`/`wget` with data,
   form or upload flags, `scp`, `sftp`, `ssh`, `nc`, and reads of `.env`, `.env.*`, `~/.ssh/**`,
   `~/.aws/**`, `~/.gnupg/**`. Always asked: edits to `settings.json`, `settings.local.json`,
-  `.claude/skills/*/SKILL.md`, `.claude/agents/**`, `.github/**`, `tools/security_guards.py`, and
+  `.agents/skills/*/SKILL.md`, `.agents/subagents/**`, `.github/**`, `tools/security_guards.py`, and
   `git push` - the files whose content is the permission surface cannot be widened silently from
   inside a session. Prefix rules are tripwires, not walls; `SECURITY.md` says so.
 
 - **The security guard now reads skill and command frontmatter** (#642, `tools/security_guards.py`
   check 4, `ALLOWED_SKILL_TOOLS`) - it allowlisted `settings.json` permissions and hooks but never
   looked at `allowed-tools`, so the narrow settings allowlist sat next to a bare `Bash` grant it
-  could not see. Every `.claude/skills/*/SKILL.md`, `.agents/skills/*/SKILL.md` and
-  `.claude/commands/*.md` frontmatter is now held to an exact allowlist; a portal skill may
+  could not see. Every `.agents/skills/*/SKILL.md`, `.agents/skills/*/SKILL.md` and
+  `.agents/commands/*.md` frontmatter is now held to an exact allowlist; a portal skill may
   additionally grant exactly its own `cli/src/cli.ts`, matched by path so no portal name is
   hardcoded. Bare tools and mid-pattern wildcards fail CI with their own message. On the previous
   frontmatter this check reports two failures.
 
 - **The browser-header 403 retry is `python3 tools/fetch_page.py`, not a documented `curl`**
   (#642, `tools/fetch_page.py`, `tests/test_fetch_page.py`,
-  `.claude/skills/job-application-assistant/09-web-research.md` `framework_version: 1.1.3 -> 1.1.4`,
-  `.claude/commands/apply.md` Step 0 and Step 3, `.claude/commands/rank.md` Step 2,
-  `.claude/skills/job-scraper/SKILL.md` Step 2) - the retry was a curl command plus an inline
+  `.agents/skills/job-application-assistant/09-web-research.md` `framework_version: 1.1.3 -> 1.1.4`,
+  `.agents/commands/apply.md` Step 0 and Step 3, `.agents/commands/rank.md` Step 2,
+  `.agents/skills/job-scraper/SKILL.md` Step 2) - the retry was a curl command plus an inline
   `python3 -c` tag-stripper, which meant the workflow wanted a `Bash(curl:*)` grant, and `curl`
   with a free tail is an upload channel. The script is one GET with a fixed argv (URL after `--`,
   45 s, 5 redirects, 10 MB), http(s) only, runs `robots_check.gate()` first with no bypass flag,
   refuses an `--out` inside the repo, and prints the stripped text with `--text`. The grant names
   the script (`Bash(python tools/fetch_page.py:*)` and `robots_check.py` likewise). `SECURITY.md`
   now lists every shipped grant, its lifetime and its guard in one table, and states what the
-  permission layer does not do (no sandbox on native Windows, WebFetch unrestricted by domain,
+  permission layer does not do (no sandbox on native Windows, fetch_page.py unrestricted by domain,
   subagents unrestricted - the latter is the next change).
 
 - **Every posting passes a deterministic integrity gate before it is used** (#654, `tools/posting_guard.py`,
-  `tests/test_posting_guard.py`, `tests/test_posting_gate_wiring.py`, `.claude/commands/apply.md`
-  Steps 0, 1 and 6b, `.claude/commands/rank.md` Steps 2, 4 and 5, `.claude/commands/interview.md`
-  Step 1, `tools/rank_state.py`, `.claude/skills/job-application-assistant/09-web-research.md`
+  `tests/test_posting_guard.py`, `tests/test_posting_gate_wiring.py`, `.agents/commands/apply.md`
+  Steps 0, 1 and 6b, `.agents/commands/rank.md` Steps 2, 4 and 5, `.agents/commands/interview.md`
+  Step 1, `tools/rank_state.py`, `.agents/skills/job-application-assistant/09-web-research.md`
   `framework_version: 1.1.4 -> 1.1.5`) - "postings are data, never instructions" was only as strong
   as the model's adherence. The gate removes hidden HTML (`display:none`, `visibility:hidden`,
   `opacity:0`, `font-size:0`, off-screen, `hidden`/`aria-hidden`) and comments and scans what it
@@ -1193,24 +1193,24 @@ per-file diff commands.
   conversational Step 1 (`SKILL.md` `framework_version: 1.3.5 -> 1.3.6`), `/outcome` Step 3.2's
   fresh fetch and `/interview`'s fetch fallback gate too, so every entry point names the gate.
 
-- **The agents that read postings can no longer edit or write** (#654, `.claude/agents/posting-fetcher.md`,
+- **The agents that read postings can no longer edit or write** (#654, `.agents/subagents/posting-fetcher.md`,
   `posting-scorer.md`, `application-reviewer.md`, `tools/security_guards.py` check 5,
   `tests/test_security_guards.py`) - the `/apply` reviewer and the `/rank` scorers ran as
   `general-purpose`, with every tool, while holding untrusted posting text. Three shipped definitions
-  replace that with Read, Glob/Grep where needed, WebFetch, WebSearch and Bash only; an agent's
+  replace that with Read, Glob/Grep where needed, fetch_page.py, search_web and Bash only; an agent's
   `tools:` list is tool-name granularity (verified: a `Bash(echo *)` entry gives plain Bash), so
   Bash stays scoped by `settings.json`'s allow list. The reviewer returns its edits and the company
   research cache as text and the orchestrator writes them. Guard check 5 requires every
-  `.claude/agents/*.md` to declare `tools:` from `ALLOWED_AGENT_TOOLS` and rejects a missing key
+  `.agents/subagents/*.md` to declare `tools:` from `ALLOWED_AGENT_TOOLS` and rejects a missing key
   (which means every tool) or a patterned entry. `/scrape`'s portal-search agents stay
   `general-purpose` for now.
 
 ### Removed
 
-- **`.claude/agents/gemini-research-expert.md`** (#654; found independently by @MaverickHQ in #659) -
+- **`.agents/subagents/gemini-research-expert.md`** (#654; found independently by @MaverickHQ in #659) -
   a personal helper that shipped in the initial release with no `tools:` list (every tool) and whose
   only function is piping arbitrary text to a third-party model via `gemini -p`. Nothing in the tree
-  referenced it, yet Claude Code registered it in every session opened in a clone, where its
+  referenced it, yet Antigravity registered it in every session opened in a clone, where its
   open-ended description made it a candidate for automatic delegation during company research.
   Guard check 5 would reject it. Restore it in your own fork from git history if you used it.
 
@@ -1249,13 +1249,13 @@ per-file diff commands.
   the two integration cases while retaining the existing dependency-free tests.
 
 - **`documents/projects/` portfolio ingestion in `/setup` (Path A)** (`documents/README.md`,
-  `.claude/commands/setup.md`, `.claude/commands/reset.md`, `tests/test_setup_command.py`) -
+  `.agents/commands/setup.md`, `.agents/commands/reset.md`, `tests/test_setup_command.py`) -
   onboards project writeups, case studies, and documentation (`.md`, `.txt`, `.pdf`)
   from `documents/projects/`, extracting structured summaries (problem domain, tech stack,
   technical challenges, and measurable outcomes) to populate `## Independent Projects`
   in `01-candidate-profile.md`.
 
-- **Source host verification in `/apply` Step 1** (#431, `.claude/commands/apply.md`,
+- **Source host verification in `/apply` Step 1** (#431, `.agents/commands/apply.md`,
   `tests/test_apply_host_check.py`) - before proceeding to draft CV and cover letters,
   Step 1 verifies the posting URL's provenance against installed portal boards and the
   six standard ATS apex domains (`greenhouse.io`, `lever.co`, `myworkdayjobs.com`/`workday.com`,
@@ -1263,13 +1263,13 @@ per-file diff commands.
   fails closed, and unrecognized hosts are plainly flagged as unverified in the evaluation
   output (`⚠ Unverified source host: <hostname>`) before drafting tokens are spent.
 
-- **`/expand` project and portfolio expansion** (`.claude/commands/expand.md`,
+- **`/expand` project and portfolio expansion** (`.agents/commands/expand.md`,
   `tests/test_expand_command.py`) - expands candidate discovery
   to technical projects from public GitHub repositories, extracting structured summaries
   (problem domain, tech stack, key technical challenges, and verifiable outcomes) to
   populate the `## Independent Projects` section of `01-candidate-profile.md`.
 
-- **Stale sweep branch in `/outcome`** (`.claude/commands/outcome.md`,
+- **Stale sweep branch in `/outcome`** (`.agents/commands/outcome.md`,
   `tests/test_outcome_stale.py`) - introduces `/outcome stale [N]` (and `/outcome sweep [N]`)
   to batch-resolve open applications quiet for 60+ (or N) days. Displays a numbered summary
   of qualifying applications, requires explicit user confirmation (`all`, `select`, or `skip`),
@@ -1296,7 +1296,7 @@ per-file diff commands.
 ### Changed
 
 - **`/add-template` keeps a registered template's intermediates in `build/`**
-  (#473, `.claude/commands/add-template.md`, `.gitignore`,
+  (#473, `.agents/commands/add-template.md`, `.gitignore`,
   `tests/test_add_template_build_dir.py`) - the elicited compile command
   now redirects intermediates (`.aux`, `.log`, ...) to a `build/` folder beside the source
   and moves the PDF back, so Step 4's test-compile cleanup deletes one folder instead of
@@ -1386,7 +1386,7 @@ per-file diff commands.
   name falls outside the ANSI code page** (`tools/rank_state.py`, `tools/job_key.py`,
   `tools/verify_pdf.py`, `tools/verify_layout.py`, `tools/convert_salary_excel.py`,
   `salary_lookup.py`, `tests/test_tools_utf8_output.py`) - a piped stdout on Windows
-  defaults to the ANSI code page (cp1252 on most Western installs), and that is how Claude
+  defaults to the ANSI code page (cp1252 on most Western installs), and that is how Antigravity
   Code runs every tool. `/rank`'s candidate listing printed titles and companies with
   `ensure_ascii=False`, so a single Cyrillic, CJK, Devanagari, Polish or Turkish posting
   ended the run with `UnicodeEncodeError` before any output reached the workflow; the key
@@ -1433,7 +1433,7 @@ per-file diff commands.
   next docstring that quotes a LaTeX macro is caught too.
 
 - **`/apply` Step 5b now actually runs the page-count check it claimed Step 5d ran**
-  (`.claude/commands/apply.md`, `tests/test_apply_page_count.py`) - the 5b prose said
+  (`.agents/commands/apply.md`, `tests/test_apply_page_count.py`) - the 5b prose said
   "Page count is not checked here - that is `verify_pdf.py --pages`'s job, and Step 5d already
   runs it", and `verify_layout.py`'s docstring declines to measure page count for the same
   reason. Step 5d's only `verify_pdf.py` call is `--dump-text`, and no step in the workflow
@@ -1534,8 +1534,8 @@ per-file diff commands.
   wrappers, plus a new `detail-backoff.test.ts` that exercises the handler path itself -
   its retry cases fail against the bare `fetch()`.
 
-- **Free-form tracker notes no longer break the CSV row** (#454) (`.claude/commands/gmail-sync.md`,
-  `.claude/commands/outcome.md`, `tests/test_tracker_notes_csv_safe.py`) - two writers put
+- **Free-form tracker notes no longer break the CSV row** (#454) (`.agents/commands/gmail-sync.md`,
+  `.agents/commands/outcome.md`, `tests/test_tracker_notes_csv_safe.py`) - two writers put
   free-form text into the `notes` column of `job_search_tracker.csv`: `/gmail-sync` Step 7a
   copied the raw subject of a received email, and `/outcome` Step 4 appended "a short dated
   note" with no constraint on its content. No writer in the framework emits a quoted tracker
@@ -1574,7 +1574,7 @@ per-file diff commands.
   host-check rule proposed in #431, which stays with its proposer.
 
 - **`/outcome` and `/interview` no longer confuse two roles at the same company** (#443)
-  (`.claude/commands/outcome.md`, `.claude/commands/interview.md`,
+  (`.agents/commands/outcome.md`, `.agents/commands/interview.md`,
   `tests/test_apply_records_application.py`) - when a tracker row's `cv_file` /
   `cover_letter_file` columns are empty, both commands fell back to a company-prefix glob
   (`cv/main_<company>*.tex`). Two roles at one company both match it, so `/outcome` copied
@@ -1604,7 +1604,7 @@ per-file diff commands.
   The file's instruction and its own snippet disagreed, and the snippet won silently.
   Both expansions are now guarded with `${SCRATCHPAD:?...}`, turning a silent repo write into
   an immediate failure whose message names where the value comes from. Behaviour is unchanged
-  wherever the variable is set. The same undefined reference in `.claude/commands/rank.md`
+  wherever the variable is set. The same undefined reference in `.agents/commands/rank.md`
   was removed by #425 as a side effect of rewriting Step 2/4; this is the remaining instance.
 
 - **`seen_jobs.json` keys are now a pure function of the posting** - `/scrape` Step 4 described
@@ -1942,7 +1942,7 @@ per-file diff commands.
   `/setup` placeholders while preserving the scoring framework and the query structure;
   `04-job-evaluation.md` is out of the preserved list, which keeps `03-writing-style.md`
   and `06-cover-letter-templates.md` (correctly - the latter's `[YOUR_NAME]` tokens are
-  LaTeX scaffolding Step 3 never writes to). `CLAUDE.md` and `cv/main_example.tex` stay
+  LaTeX scaffolding Step 3 never writes to). `GEMINI.md` and `cv/main_example.tex` stay
   outside the `profile` scope, which covers skill files only, and the preview and Step 4
   now say so instead of implying a full wipe. `tests/test_reset_command.py` gains a
   profile-scope guard alongside its documents-scope one, deriving the file list from
@@ -2218,7 +2218,7 @@ per-file diff commands.
   encoding flag emits Latin-1 on Xpdf builds, so every non-ASCII character in a correct CV
   (Rambøll, Ingeniør, København) read back as a replacement character and failed the
   parseability checklist, steering the agent to "fix" a healthy document. The commands in
-  `apply.md`, `05-cv-templates.md`, and `CLAUDE.md`'s verification checklist now carry
+  `apply.md`, `05-cv-templates.md`, and `GEMINI.md`'s verification checklist now carry
   `-enc UTF-8`, which is deterministic on both poppler and Xpdf. Pinned by
   `tests/test_latex_guidance.py`.
 
@@ -2340,13 +2340,13 @@ per-file diff commands.
   introduces both tools side by side. Offline tests cover patch-id matching, relevance filtering, the
   won't-port list, and the workflow guard. Thanks @anjolok1997.
 
-- **`security_guards.py` now holds `.claude/settings.json` hooks to an allowlist** - the
+- **`security_guards.py` now holds `.agents/settings.json` hooks to an allowlist** - the
   guard read `permissions.allow` and nothing else, so a `hooks` block in the same file
   passed silently. A hook is strictly more dangerous than a pre-approved permission: a
-  permission pre-approves something Claude *may* choose to do, while a hook runs
+  permission pre-approves something Antigravity *may* choose to do, while a hook runs
   unconditionally when its event fires, with no prompt and no model decision in between.
   This is not hypothetical - it is the vector the Shai-Hulud worm used in its August 2026
-  wave, planting a `SessionStart` hook in `.claude/settings.json` that executed on session
+  wave, planting a `SessionStart` hook in `.agents/settings.json` that executed on session
   start ([JFrog research](https://research.jfrog.com/post/shai-hulud-is-back-august/)).
   For a template thousands of people are invited to fork, that is the riskiest key in the
   file the guard already parses. `ALLOWED_HOOKS` ships empty (the template has no hooks),
@@ -2390,11 +2390,11 @@ per-file diff commands.
   The ignore rule `upskill/*.md` is rooted (a middle slash anchors a gitignore pattern to the
   repo root), but `/upskill` is a *skill*, and skills resolve bare relative paths against
   their own directory - the same observed behavior the `**/job_scraper/*` rules exist for.
-  A report written to `.claude/skills/upskill/upskill/report-*.md` was therefore not ignored
+  A report written to `.agents/skills/upskill/upskill/report-*.md` was therefore not ignored
   (`git check-ignore` confirms it on the unpatched tree), and an upskill report is the
   candidate's skill gaps and weaknesses measured against named employers - among the most
   sensitive files the workflow generates. The obvious widening, `**/upskill/*.md`, would have
-  ignored the template's own `.claude/skills/upskill/SKILL.md` (the skill directory shares
+  ignored the template's own `.agents/skills/upskill/SKILL.md` (the skill directory shares
   the name), so the new rule pins the report-file prefix instead: `**/upskill/report-*.md`.
   Added to `.gitignore` and `security_guards.py`'s `REQUIRED_IGNORE_RULES`, with a
   `check-ignore`-based test pinning both properties - reports ignored at both depths,
@@ -2545,7 +2545,7 @@ per-file diff commands.
   matching the identification posture settled in #277. Verified live: both portals serve
   identical responses to the honest token.
 
-- **A `WebFetch` 403 is no longer treated as a dead posting** - `WebFetch` sends a bot user
+- **A `fetch_page.py` 403 is no longer treated as a dead posting** - `fetch_page.py` sends a bot user
   agent, and many bank and corporate sites answer it with HTTP 403 while serving the same
   page to a browser normally. Every command read that as "page unavailable" and degraded
   silently instead of failing loudly: `/rank` marked live postings `expired`, `/apply` fell
@@ -2559,11 +2559,11 @@ per-file diff commands.
   `/apply`, `/rank`, `/interview`, `/outcome`, `/notion-sync`, the job-scraper skill, and
   writing-style rule 5 (`03-writing-style.md` 1.1.0 to 1.2.0).
 
-  **The retry is gated on `robots.txt`.** `WebFetch` identifies itself as `Claude-User`
+  **The retry is gated on `robots.txt`.** `fetch_page.py` identifies itself as `Antigravity-User`
   and honors `robots.txt`, so a 403 means either a WAF default on a site whose published
   policy allows access, or a site that has actually declined. New `tools/robots_check.py`
   tells them apart and the escalation runs it before retrying: a disallow for `*` or
-  `Claude-User` skips the retry entirely and goes straight to finding the employer's own
+  `Antigravity-User` skips the retry entirely and goes straight to finding the employer's own
   posting. The rule is stated in the file so later edits do not erode it - *the retry
   exists to get past bot-filtering firewalls on sites whose robots.txt permits access; it
   is never used to override a site that has said no.* Two findings are pinned by
@@ -2616,7 +2616,7 @@ per-file diff commands.
   language requirements against what the candidate actually speaks (not a Scoring Dimension,
   not a `/scrape`/`/rank` field, nothing for `/apply`'s existing generic language detection
   to report to). Adds that check, structured like the existing Eligibility Gate, on a new
-  structured `Languages` table in CLAUDE.md / `01-candidate-profile.md` (`/setup` asks, or
+  structured `Languages` table in GEMINI.md / `01-candidate-profile.md` (`/setup` asks, or
   infers it from a CV/LinkedIn export): a posting requiring a language you haven't declared
   at all is a hard **FAIL**; one requiring a higher level than you declared in a language you
   *do* work in is **FLAG**, not an auto-reject, so borderline cases (a strict "fluent" bar vs.
@@ -2827,7 +2827,7 @@ At this baseline the framework provides:
   `tools/security_guards.py` allowlist for `.gitignore` negations, and a CI policy of
   making no live portal requests.
 - **Cross-runtime support** - a root `AGENTS.md` pointer so Codex and Antigravity can
-  discover the portable portal skills, with Claude Code as the reference runtime.
+  discover the portable portal skills, with Antigravity as the reference runtime.
 
 [Unreleased]: https://github.com/ai-job-search-dev/ai-job-search/compare/v1.7.3...HEAD
 [1.7.3]: https://github.com/ai-job-search-dev/ai-job-search/compare/v1.7.2...v1.7.3

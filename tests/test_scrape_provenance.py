@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-SKILL = REPO / ".claude" / "skills" / "job-scraper" / "SKILL.md"
+SKILL = REPO / ".agents" / "skills" / "job-scraper" / "SKILL.md"
 
 
 def _steps(text: str) -> dict[str, str]:

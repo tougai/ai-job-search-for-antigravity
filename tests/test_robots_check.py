@@ -139,21 +139,21 @@ class TestPathRules(unittest.TestCase):
 
 
 class TestAgentSelection(unittest.TestCase):
-    def test_named_claude_user_opt_out_is_honored(self):
-        body = "User-agent: Claude-User\nDisallow: /\n\nUser-agent: *\nAllow: /\n"
-        self.assertFalse(allowed(body, "Claude-User", "/a"))
+    def test_named_antigravity_user_opt_out_is_honored(self):
+        body = "User-agent: Antigravity-User\nDisallow: /\n\nUser-agent: *\nAllow: /\n"
+        self.assertFalse(allowed(body, "Antigravity-User", "/a"))
         self.assertTrue(allowed(body, "*", "/a"))
 
     def test_agent_match_is_case_insensitive(self):
         body = "User-agent: CLAUDE-USER\nDisallow: /x\n"
-        self.assertFalse(allowed(body, "claude-user", "/x"))
+        self.assertFalse(allowed(body, "antigravity-user", "/x"))
 
     def test_falls_back_to_star_when_agent_absent(self):
-        self.assertFalse(allowed(JOBUP, "Claude-User", "/api/v1"))
+        self.assertFalse(allowed(JOBUP, "Antigravity-User", "/api/v1"))
 
     def test_multiple_agents_share_one_ruleset(self):
-        body = "User-agent: A\nUser-agent: Claude-User\nDisallow: /z\n"
-        self.assertFalse(allowed(body, "Claude-User", "/z"))
+        body = "User-agent: A\nUser-agent: Antigravity-User\nDisallow: /z\n"
+        self.assertFalse(allowed(body, "Antigravity-User", "/z"))
         self.assertFalse(allowed(body, "A", "/z"))
 
 
@@ -198,7 +198,7 @@ class TestSoftTwoHundred(unittest.TestCase):
 
     def test_gate_reads_policy_as_browser_when_honest_request_is_refused(self):
         """09-web-research.md's Barclays-class recovery: the policy file itself
-        returns 403 to Claude-User and 200 to a browser, and the checker must
+        returns 403 to Antigravity-User and 200 to a browser, and the checker must
         then read it as a browser and obey it strictly. This is gate()'s UA
         fallback loop, previously untested despite the doc's coverage claim
         (review finding F30, 2026-08-19)."""
@@ -285,7 +285,7 @@ class TestByteOrderMark(unittest.TestCase):
 
     def test_bom_does_not_hide_the_first_group(self):
         self.assertFalse(allowed(self.BODY, "*", "/x"))
-        self.assertFalse(allowed(self.BODY, "Claude-User", "/x"))
+        self.assertFalse(allowed(self.BODY, "Antigravity-User", "/x"))
 
     def test_gate_obeys_a_policy_saved_with_a_bom(self):
         import robots_check
@@ -557,7 +557,7 @@ class TestSchemeHardening(unittest.TestCase):
         original = robots_check.subprocess.run
         robots_check.subprocess.run = fake_run
         try:
-            body, code = robots_check._fetch("https://x.example/robots.txt", "Claude-User")
+            body, code = robots_check._fetch("https://x.example/robots.txt", "Antigravity-User")
         finally:
             robots_check.subprocess.run = original
         self.assertEqual(code, 404)
@@ -577,4 +577,4 @@ class TestSchemeHardening(unittest.TestCase):
             self.skipTest("curl is not installed")
         target = (REPO_ROOT / "tools" / "robots_check.py").resolve().as_uri()
         with self.assertRaises(RuntimeError):
-            robots_check._fetch(target, "Claude-User")
+            robots_check._fetch(target, "Antigravity-User")

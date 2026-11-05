@@ -16,9 +16,7 @@ description: >
   ledige job, ansøgningsfrist, søg job, job opslaget, jobopslag, danish vacancies,
   work in denmark, employment denmark, job denmark, jobs near me denmark,
   apprentice denmark, internship denmark, part-time denmark, full-time denmark.
-context: fork
 enabled: false  # Danish demo portal - ships opt-in; /setup enables it when your market is Denmark, or set true here yourself
-allowed-tools: Bash(bun run .agents/skills/jobdanmark-search/cli/src/cli.ts *)
 ---
 
 # Jobdanmark Search Skill

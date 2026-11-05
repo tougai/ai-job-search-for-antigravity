@@ -36,7 +36,7 @@ class GuardRepoFixture(unittest.TestCase):
         (self.root / "tools").mkdir()
         shutil.copy(GUARD_SCRIPT, self.root / "tools" / "security_guards.py")
 
-        self.settings = self.root / ".claude" / "settings.json"
+        self.settings = self.root / ".agents" / "settings.json"
         self.settings.parent.mkdir()
         self.write_settings(sorted(security_guards.ALLOWED_PERMISSIONS))
 
@@ -49,19 +49,19 @@ class GuardRepoFixture(unittest.TestCase):
 
         # Frontmatter grants: one core skill, one portal skill granting its own
         # CLI, one command with no frontmatter at all. All pass as written.
-        self.core_skill = self.root / ".claude" / "skills" / "example" / "SKILL.md"
+        self.core_skill = self.root / ".agents" / "skills" / "example" / "SKILL.md"
         self.core_skill.parent.mkdir(parents=True)
         self.write_skill(self.core_skill, "Read, Glob, Grep, WebFetch, Edit, Write")
         self.portal_skill = self.root / ".agents" / "skills" / "example-search" / "SKILL.md"
         self.write_skill(
             self.portal_skill, "Bash(bun run .agents/skills/example-search/cli/src/cli.ts *)"
         )
-        self.command = self.root / ".claude" / "commands" / "example.md"
+        self.command = self.root / ".agents" / "commands" / "example.md"
         self.command.parent.mkdir(parents=True)
         self.command.write_text("# /example - A command with no frontmatter\n", encoding="utf-8")
 
         # One agent definition with a least-privilege tools list. Passes as written.
-        self.agent = self.root / ".claude" / "agents" / "example.md"
+        self.agent = self.root / ".agents" / "agents" / "example.md"
         self.agent.parent.mkdir(parents=True)
         self.write_agent("Read, Grep, WebFetch, WebSearch, Bash")
 
@@ -200,13 +200,13 @@ class AskDenyRuleTests(GuardRepoFixture):
         # The obvious siblings of the listed upload shapes.
         for sibling in ("Bash(curl -XPOST:*)", "Bash(curl --request POST:*)", "Bash(wget --method=POST:*)"):
             self.assertIn(sibling, security_guards.REQUIRED_DENY_RULES)
-        self.assertIn("Edit(.claude/settings.json)", security_guards.REQUIRED_ASK_RULES)
-        self.assertIn("Edit(.claude/skills/*/SKILL.md)", security_guards.REQUIRED_ASK_RULES)
+        self.assertIn("Edit(.agents/settings.json)", security_guards.REQUIRED_ASK_RULES)
+        self.assertIn("Edit(.agents/skills/*/SKILL.md)", security_guards.REQUIRED_ASK_RULES)
         # A command's frontmatter is a grant too (check 4 parses it), so writing
         # one must prompt - otherwise a steered session could add
         # `allowed-tools: Bash` to apply.md with no prompt and the next /apply
         # would be pre-approved for bare Bash.
-        self.assertIn("Edit(.claude/commands/*.md)", security_guards.REQUIRED_ASK_RULES)
+        self.assertIn("Edit(.agents/commands/*.md)", security_guards.REQUIRED_ASK_RULES)
         self.assertIn("Bash(git push:*)", security_guards.REQUIRED_ASK_RULES)
         # The posting integrity gate runs inside fetch agents with no prompt.
         self.assertIn("Bash(python tools/posting_guard.py:*)", security_guards.ALLOWED_PERMISSIONS)
@@ -237,7 +237,7 @@ class SkillGrantGuardTests(GuardRepoFixture):
         self.assertEqual(result.returncode, 1)
         self.assertIn("allowed-tools entry not in the reviewed allowlist", result.stdout)
         self.assertIn("'Bash'", result.stdout)
-        self.assertIn(".claude/skills/example/SKILL.md", result.stdout.replace("\\", "/"))
+        self.assertIn(".agents/skills/example/SKILL.md", result.stdout.replace("\\", "/"))
 
     def test_glob_cli_grant_in_skill_fails(self):
         self.write_skill(self.core_skill, "Read, Bash(bun run .agents/skills/*/cli/src/cli.ts *)")
@@ -363,7 +363,7 @@ class SkillGrantGuardTests(GuardRepoFixture):
         result = run_guards(self.root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("frontmatter `hooks`", result.stdout)
-        self.assertIn(".claude/skills/example/SKILL.md", result.stdout.replace("\\", "/"))
+        self.assertIn(".agents/skills/example/SKILL.md", result.stdout.replace("\\", "/"))
 
     def test_dynamic_context_line_fails_in_skills_and_commands(self):
         # !`command` runs at load and splices its output in, with no permission check.
@@ -389,7 +389,7 @@ class SkillGrantGuardTests(GuardRepoFixture):
 
 
 class AgentGrantGuardTests(GuardRepoFixture):
-    """A .claude/agents/*.md definition's `tools:` list is an allowlist at tool-name
+    """A .agents/subagents/*.md definition's `tools:` list is an allowlist at tool-name
     granularity (verified empirically: a `Bash(echo *)` entry resolves to plain
     Bash). A missing key means every tool. These agents read untrusted postings,
     so none may edit or write."""
@@ -471,10 +471,10 @@ class AgentGrantGuardTests(GuardRepoFixture):
 
 
 class HookGuardTests(GuardRepoFixture):
-    """A hook in .claude/settings.json runs with no prompt when its event fires.
+    """A hook in .agents/settings.json runs with no prompt when its event fires.
 
     The shape used here is the one the Shai-Hulud worm planted in its August 2026
-    wave (a SessionStart hook chaining to .claude/math_init.js), per
+    wave (a SessionStart hook chaining to .agents/math_init.js), per
     https://research.jfrog.com/post/shai-hulud-is-back-august/
     """
 
@@ -496,7 +496,7 @@ class HookGuardTests(GuardRepoFixture):
         self.write_settings_with_hooks(
             {
                 "SessionStart": [
-                    {"hooks": [{"type": "command", "command": "node .claude/math_init.js"}]}
+                    {"hooks": [{"type": "command", "command": "node .agents/math_init.js"}]}
                 ]
             }
         )
@@ -652,9 +652,9 @@ class GitignorePatternBehaviorTests(unittest.TestCase):
         # pins that it stays tracked.
         cases = {
             "upskill/report-2026-08-11.md": True,
-            ".claude/skills/upskill/upskill/report-2026-08-11.md": True,
-            ".claude/skills/upskill/upskill/report-2026-08-11-acme-engineer.md": True,
-            ".claude/skills/upskill/SKILL.md": False,
+            ".agents/skills/upskill/upskill/report-2026-08-11.md": True,
+            ".agents/skills/upskill/upskill/report-2026-08-11-acme-engineer.md": True,
+            ".agents/skills/upskill/SKILL.md": False,
         }
         for path, expect_ignored in cases.items():
             with self.subTest(path=path):
@@ -680,7 +680,7 @@ class GitignorePatternBehaviorTests(unittest.TestCase):
         # so either half can move independently and each must be pinned.
         folder = "documents/applications/<company>_<role>/"
         filename = "interview_prep_<stage>.md"
-        spec = (REPO_ROOT / ".claude" / "commands" / "interview.md").read_text(encoding="utf-8")
+        spec = (REPO_ROOT / ".agents" / "commands" / "interview.md").read_text(encoding="utf-8")
         for fragment in (folder, filename):
             # assertTrue, not assertIn: the haystack is the whole command spec,
             # and dumping it buries the one sentence explaining the failure.

@@ -22,7 +22,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 REPO = Path(__file__).resolve().parent.parent
-APPLY_COMMAND_FILE = REPO / ".claude" / "commands" / "apply.md"
+APPLY_COMMAND_FILE = REPO / ".agents" / "commands" / "apply.md"
 SKILLS_DIR = REPO / ".agents" / "skills"
 
 # A host literal in a CLI source file. Portal CLIs build every request URL from
@@ -330,7 +330,7 @@ class InstalledPortalsAreVerifiedTests(unittest.TestCase):
 
 class WebResearchEscalationOrderTests(unittest.TestCase):
     def setUp(self):
-        self.research_file = REPO / ".claude" / "skills" / "job-application-assistant" / "09-web-research.md"
+        self.research_file = REPO / ".agents" / "skills" / "job-application-assistant" / "09-web-research.md"
         self.text = self.research_file.read_text(encoding="utf-8")
         match = re.search(r"## Escalation order(.*?)(?=## |\Z)", self.text, re.DOTALL)
         self.assertTrue(match, "Escalation order section must exist in 09-web-research.md")
@@ -348,7 +348,7 @@ class WebResearchEscalationOrderTests(unittest.TestCase):
 
 class RankBatchFetchSpecTests(unittest.TestCase):
     def setUp(self):
-        self.rank_file = REPO / ".claude" / "commands" / "rank.md"
+        self.rank_file = REPO / ".agents" / "commands" / "rank.md"
         self.text = self.rank_file.read_text(encoding="utf-8")
         match = re.search(r"## Step 2: Batch-Fetch and Score(.*?)(?=## Step 3:)", self.text, re.DOTALL)
         self.assertTrue(match, "Step 2 must exist in rank.md")

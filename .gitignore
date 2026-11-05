@@ -22,10 +22,12 @@ build/
 # Personal data (never commit these)
 salary_data.json
 # Match at any depth: the job-scraper skill resolves `job_scraper/` relative to
-# its own directory, so these land at .claude/skills/job-scraper/job_scraper/*.
+# its own directory, so these land at .agents/skills/job-scraper/job_scraper/*.
 # A rooted `job_scraper/...` pattern silently fails to match them.
 **/job_scraper/seen_jobs.json
 **/job_scraper/notion_sync.json
+**/job_scraper/job_matrix_export.csv
+**/job_scraper/job_matrix_export.json
 **/job_scraper/*.md
 *_BehavioralReport.pdf
 linkedin_Profile.pdf
@@ -49,9 +51,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Memory files (Claude Code user-specific)
-.claude/projects/
-.claude/settings.local.json
+# Memory files (Antigravity user-specific)
+.agents/projects/
+.agents/settings.local.json
 
 # Skills lock (auto-generated)
 skills-lock.json
@@ -98,7 +100,7 @@ reports/
 
 # Upskill reports (personal output). Depth-independent like the job_scraper
 # rules above: the upskill skill resolves `upskill/` relative to its own
-# directory, so a report can land at .claude/skills/upskill/upskill/*.md
+# directory, so a report can land at .agents/skills/upskill/upskill/*.md
 # where the rooted rule cannot see it. `**/upskill/*.md` is not usable here -
 # the skill directory shares the `upskill` name, so it would also ignore the
 # skill's own SKILL.md - hence the report-file prefix is pinned instead.

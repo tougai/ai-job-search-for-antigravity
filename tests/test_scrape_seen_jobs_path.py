@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parent.parent
 # /scrape writes the file; the others read it. A bare name in a reader spec is the
 # same trap: an agent asked to "read seen_jobs.json" looks in the repo root first.
 SPECS = [
-    ROOT / ".claude" / "skills" / "job-scraper" / "SKILL.md",
-    ROOT / ".claude" / "commands" / "rank.md",
-    ROOT / ".claude" / "commands" / "notion-sync.md",
-    ROOT / ".claude" / "skills" / "upskill" / "SKILL.md",
+    ROOT / ".agents" / "skills" / "job-scraper" / "SKILL.md",
+    ROOT / ".agents" / "commands" / "rank.md",
+    ROOT / ".agents" / "commands" / "notion-sync.md",
+    ROOT / ".agents" / "skills" / "upskill" / "SKILL.md",
 ]
 BARE = re.compile(r"(?<!job_scraper/)(?<![\w/.-])seen_jobs\.json")
 

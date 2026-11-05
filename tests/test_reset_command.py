@@ -41,8 +41,8 @@ except ImportError:  # `python -m unittest discover -s tests` imports test modul
     from _upstream import is_upstream_checkout
 
 REPO = Path(__file__).resolve().parent.parent
-RESET = REPO / ".claude" / "commands" / "reset.md"
-SETUP = REPO / ".claude" / "commands" / "setup.md"
+RESET = REPO / ".agents" / "commands" / "reset.md"
+SETUP = REPO / ".agents" / "commands" / "setup.md"
 BASH = find_bash()
 
 
@@ -114,18 +114,18 @@ def setup_step3_skill_files():
     """Skill files /setup Step 3 populates, derived from its own headings.
 
     Step 3's targets are written as '### <n>. <verb> `<target>`', where the
-    target is either a bare filename resolved against .claude/skills/ or a
-    repo-relative path. Non-skill targets (CLAUDE.md, cv/main_example.tex)
+    target is either a bare filename resolved against .agents/skills/ or a
+    repo-relative path. Non-skill targets (GEMINI.md, cv/main_example.tex)
     are dropped: /reset profile's scope is skill files only.
     """
     step3 = section(SETUP.read_text(encoding="utf-8"), "## Step 3:", "## Step 4:")
     files = set()
     for target in re.findall(r"^###\s+\d+\.\s+\w+\s+`([^`]+)`", step3, re.MULTILINE):
         if (REPO / target).exists():
-            if target.startswith(".claude/skills/"):
+            if target.startswith(".agents/skills/"):
                 files.add(Path(target).name)
             continue
-        matches = list((REPO / ".claude" / "skills").glob(f"*/{target}"))
+        matches = list((REPO / ".agents" / "skills").glob(f"*/{target}"))
         if matches:
             files.add(Path(target).name)
     return files
@@ -182,7 +182,7 @@ class TestResetCoversEveryPersonalizedSkillFile(unittest.TestCase):
             f"{mislabeled}",
         )
 
-SKILL_DIR = REPO / ".claude" / "skills" / "job-application-assistant"
+SKILL_DIR = REPO / ".agents" / "skills" / "job-application-assistant"
 
 
 def skeleton_step(reset_text, filename):

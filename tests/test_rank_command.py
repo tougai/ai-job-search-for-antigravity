@@ -21,10 +21,10 @@ except ImportError:
     _HAVE_YAML = False
 
 REPO = Path(__file__).resolve().parent.parent
-COMMAND = REPO / ".claude" / "commands" / "rank.md"
-SCRAPER_SKILL = REPO / ".claude" / "skills" / "job-scraper" / "SKILL.md"
+COMMAND = REPO / ".agents" / "commands" / "rank.md"
+SCRAPER_SKILL = REPO / ".agents" / "skills" / "job-scraper" / "SKILL.md"
 EVALUATION = (
-    REPO / ".claude" / "skills" / "job-application-assistant" / "04-job-evaluation.md"
+    REPO / ".agents" / "skills" / "job-application-assistant" / "04-job-evaluation.md"
 )
 
 
@@ -682,11 +682,11 @@ class RankStateToolSpec(unittest.TestCase):
         )
 
     def test_settings_and_guards_allow_the_new_tool(self):
-        settings = json.loads((REPO / ".claude" / "settings.json").read_text(encoding="utf-8"))
+        settings = json.loads((REPO / ".agents" / "settings.json").read_text(encoding="utf-8"))
         allow = settings["permissions"]["allow"]
         guards = (REPO / "tools" / "security_guards.py").read_text(encoding="utf-8")
         for entry in ("Bash(python tools/rank_state.py:*)", "Bash(python3 tools/rank_state.py:*)"):
-            self.assertIn(entry, allow, f"{entry} missing from .claude/settings.json")
+            self.assertIn(entry, allow, f"{entry} missing from .agents/settings.json")
             self.assertIn(entry, guards, f"{entry} missing from security_guards.py's reviewed allowlist")
 
 

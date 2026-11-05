@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# `.claude/settings.json` pre-approves this tool with any arguments, so where
+# `.agents/settings.json` pre-approves this tool with any arguments, so where
 # `--dump-text` may write is part of that permission. The workflow only dumps a
 # CV's text layer beside it (`apply.md` Step 5d writes `cv/main_<company>_<role>.txt`);
 # a path anywhere else - a shell rc file, a script the allowlist runs - would be

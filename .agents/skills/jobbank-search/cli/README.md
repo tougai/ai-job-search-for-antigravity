@@ -6,7 +6,7 @@ CLI for [Akademikernes Jobbank](https://jobbank.dk) — Denmark's job portal for
 - **RSS feed**: `https://jobbank.dk/job/rss?{params}` — 100 items max, all search filters work
 - **Job detail**: `https://jobbank.dk/job/{id}/` — JSON-LD (`Schema.org JobPosting`) embedded in page HTML
 
-**Authentication**: None required. A browser User-Agent header is sent, but Jobbank may still block automated requests with Cloudflare bot protection. In that case the CLI exits with a clear error and callers should use a WebSearch fallback rather than retrying.
+**Authentication**: None required. A browser User-Agent header is sent, but Jobbank may still block automated requests with Cloudflare bot protection. In that case the CLI exits with a clear error and callers should use a search_web fallback rather than retrying.
 **Format**: RSS XML (search), HTML with embedded JSON-LD (detail).
 
 ---
@@ -344,7 +344,7 @@ All errors are written to **stderr** in JSON format and exit with code `1`:
 
 ```json
 { "error": "Job not found", "code": "NOT_FOUND" }
-{ "error": "Jobbank is blocking automated requests with Cloudflare bot protection. Skip this portal or use the WebSearch fallback.", "code": "API_ERROR" }
+{ "error": "Jobbank is blocking automated requests with Cloudflare bot protection. Skip this portal or use the search_web fallback.", "code": "API_ERROR" }
 { "error": "No JSON-LD found on job page", "code": "PARSE_ERROR" }
 { "error": "--key or at least one filter is required", "code": "MISSING_REQUIRED" }
 ```
@@ -361,7 +361,7 @@ All HTTP requests include a browser User-Agent header:
 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
 ```
 
-This is not guaranteed to bypass Cloudflare bot protection. If Jobbank returns a Cloudflare challenge page, the CLI reports that condition and callers should skip the portal or use a WebSearch fallback.
+This is not guaranteed to bypass Cloudflare bot protection. If Jobbank returns a Cloudflare challenge page, the CLI reports that condition and callers should skip the portal or use a search_web fallback.
 
 ### RSS description parsing
 

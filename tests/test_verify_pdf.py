@@ -335,7 +335,7 @@ class RunToolTests(unittest.TestCase):
 
 
 class DumpTargetTests(unittest.TestCase):
-    """`.claude/settings.json` pre-approves verify_pdf.py with any arguments, so
+    """`.agents/settings.json` pre-approves verify_pdf.py with any arguments, so
     `--dump-text` was a prompt-free write to any path on disk (it also created
     missing parent directories). The CLI now writes only a .txt under the
     repo's cv/ or cover_letters/, the place apply.md Step 5d documents."""
